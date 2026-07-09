@@ -1,0 +1,628 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ShopMaster - Tu Tienda Online</title>
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Font Awesome -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;600&family=Roboto:wght@400;700&display=swap" rel="stylesheet">
+    <!-- jsPDF Library -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <style>
+        :root {
+            --primary-color: #007BFF;
+            --secondary-color: #28A745;
+            --dark-color: #343A40;
+            --light-bg: #f8f9fa;
+        }
+        body {
+            font-family: 'Open Sans', sans-serif;
+            background-color: var(--light-bg);
+            color: var(--dark-color);
+        }
+        h1, h2, h3, h4, h5, h6 {
+            font-family: 'Roboto', sans-serif;
+        }
+        .navbar-brand {
+            font-weight: 700;
+            letter-spacing: 1px;
+        }
+        .product-card {
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+        }
+        .product-card:hover {
+            transform: translateY(-5s);
+            box-shadow: 0 10px 20px rgba(0,0,0,0.15);
+        }
+        .card-img-container {
+            height: 200px;
+            padding: 15px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: #fff;
+        }
+        .card-img-container img {
+            max-height: 100%;
+            max-width: 100%;
+            object-fit: contain;
+        }
+        .badge-category {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            background-color: rgba(0, 123, 255, 0.85);
+        }
+        /* Footer & Profile Styles */
+        footer {
+            background-color: #1a1e21;
+            color: #dee2e6;
+        }
+        .profile-img-footer {
+            width: 80px;
+            height: 80px;
+            object-fit: cover;
+            border: 3px solid var(--primary-color);
+            cursor: pointer;
+            transition: transform 0.3s ease;
+        }
+        .profile-img-footer:hover {
+            transform: scale(1.1);
+        }
+        .skill-icon {
+            font-size: 1.5rem;
+            margin: 5px;
+            padding: 8px;
+            background: #2b3035;
+            border-radius: 5px;
+            display: inline-block;
+            color: #fff;
+        }
+        .social-link {
+            font-size: 2rem;
+            margin: 0 10px;
+            color: #dee2e6;
+            transition: color 0.3s, transform 0.3s;
+        }
+        .social-link:hover {
+            transform: translateY(-3px);
+        }
+        .social-youtube:hover { color: #00ff4c; }
+        .social-linkedin:hover { color: #b5a300; }
+        .social-github:hover { color: #fafafa; }
+        .social-whatsapp:hover { color: #25D366; }
+        .social-instagram:hover { color: #E1306C; }
+        .social-facebook:hover { color: #8e9fb6; }
+        .social-twitter:hover { color: #1DA1F2; }
+        
+        .alert-fixed {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 1050;
+            min-width: 250px;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Alertas dinámicas -->
+    <div id="alert-container" class="alert-fixed"></div>
+
+    <!-- Navegación -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark sticky-top shadow">
+        <div class="container">
+            <a class="navbar-brand" href="#"><i class="fa-solid fa-cart-shopping me-2 text-primary"></i>ShopMaster</a>
+            <button class="btn btn-outline-light position-relative" data-bs-toggle="offcanvas" data-bs-target="#cartOffcanvas">
+                <i class="fa-solid fa-basket-shopping me-1"></i> Carrito 🛍️
+                <span id="cart-count" class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger">0</span>
+            </button>
+        </div>
+    </nav>
+
+    <!-- Contenido Principal -->
+    <main class="container my-5">
+        <div class="row text-center mb-5">
+            <div class="col-100">
+                <h1 class="display-4 fw-bold">Descubre Nuestros Productos</h1>
+                <p class="text-muted">Calidad, confianza y envíos rápidos en un solo lugar.</p>
+                <hr class="w-25 mx-auto border-primary border-2">
+            </div>
+        </div>
+
+        <!-- Spinner de carga -->
+        <div id="loading" class="text-center my-5">
+            <div class="spinner-border text-primary" style="width: 3rem; height: 3rem;" role="status">
+                <span class="visually-hidden">Cargando...</span>
+            </div>
+        </div>
+
+        <!-- Grid de Productos -->
+        <div class="row row-cols-1 row-cols-md-2 row-cols-lg-4 g-4" id="products-grid"></div>
+    </main>
+
+    <!-- Offcanvas del Carrito -->
+    <div class="offcanvas offcanvas-end" tabindex="-1" id="cartOffcanvas" aria-labelledby="cartOffcanvasLabel">
+        <div class="offcanvas-header bg-dark text-white">
+            <h5 class="offcanvas-header-title" id="cartOffcanvasLabel"><i class="fa-solid fa-cart-shopping me-2 text-success"></i>Tu Carrito</h5>
+            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="offcanvas" aria-label="Close"></button>
+        </div>
+        <div class="offcanvas-body d-flex flex-column">
+            <div id="cart-items" class="flex-grow-1 overflow-auto pe-2">
+                <!-- Items agregados dinámicamente -->
+            </div>
+            <div class="border-top pt-3 mt-3">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h5 class="fw-bold m-0">Total:</h5>
+                    <h4 class="fw-bold text-success m-0" id="cart-total">$0.00</h4>
+                </div>
+                <button class="btn btn-success w-100 py-2 fw-bold" id="btn-checkout" data-bs-toggle="modal" data-bs-target="#checkoutModal" disabled>
+                    Ir a pagar 💳
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Detalles de Producto -->
+    <div class="modal fade" id="productModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title fw-bold" id="modal-product-title">Detalles del Producto</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="row g-4">
+                        <div class="col-md-6 d-flex align-items-center justify-content-center bg-white p-3">
+                            <img id="modal-product-img" src="" alt="" class="img-fluid style-img" style="max-height: 350px; object-fit: contain;">
+                        </div>
+                        <div class="col-md-6 d-flex flex-column justify-content-between">
+                            <div>
+                                <span id="modal-product-category" class="badge bg-secondary mb-2 text-uppercase"></span>
+                                <h3 id="modal-product-name" class="fw-bold h4"></h3>
+                                <p id="modal-product-desc" class="text-muted small mt-2"></p>
+                            </div>
+                            <div class="mt-4">
+                                <h3 id="modal-product-price" class="text-primary fw-bold mb-3"></h3>
+                                <div class="d-flex align-items-center gap-3 mb-3">
+                                    <label for="modal-qty" class="fw-bold m-0">Cantidad:</label>
+                                    <input type="number" id="modal-qty" class="form-control text-center" value="1" min="1" style="width: 80px;">
+                                </div>
+                                <button id="modal-add-btn" class="btn btn-primary w-100 py-2 fw-bold">
+                                    Agregar al carrito 🛒
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Pasarela de Pago -->
+    <div class="modal fade" id="checkoutModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header bg-success text-white">
+                    <h5 class="modal-title fw-bold"><i class="fa-solid fa-credit-card me-2"></i>Pasarela de Pago</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="payment-form" novalidate>
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Nombre completo</label>
+                            <input type="text" class="form-control" id="pay-name" required placeholder="Juan Pérez">
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Número de tarjeta</label>
+                            <div class="input-group">
+                                <span class="input-group-text"><i class="fa-solid fa-card-shopping"></i></span>
+                                <input type="text" class="form-control" id="pay-card" maxlength="16" pattern="\d{16}" placeholder="4152345678901234" required>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-6 mb-3">
+                                <label class="form-label fw-bold">Vencimiento</label>
+                                <input type="text" class="form-control" id="pay-expiry" maxlength="5" placeholder="MM/AA" pattern="(0[1-9]|1[0-2])\/\d{2}" required>
+                            </div>
+                            <div class="col-6 mb-3">
+                                <label class="form-label fw-bold">Código (CVV)</label>
+                                <input type="password" class="form-control" id="pay-cvv" maxlength="3" pattern="\d{3}" placeholder="123" required>
+                            </div>
+                        </div>
+                        <button type="submit" class="btn btn-success w-100 py-2 fw-bold mt-3">
+                            Pagar ahora ✅
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer Profesional Personalizado -->
+    <footer class="pt-5 pb-4 mt-auto">
+        <div class="container text-center text-md-start">
+            <div class="row align-items-center mb-4">
+                <!-- Foto y Bio Corta -->
+                <div class="col-md-5 d-flex flex-column align-items-center text-center mb-4 mb-md-0">
+                    <img src="FOTO_PORTADA_JUANCITO.png" alt="Ing. LORETO CARRERAS" class="rounded-circle profile-img-footer mb-3 shadow" data-bs-toggle="modal" data-bs-target="#profileModal" onerror="this.src='https://via.placeholder.com/150'">
+                    <h5 class="fw-bold text-white mb-1">Ing. LORETO CARRERAS</h5>
+                    <p class="text-muted small px-3">Docente universitario y desarrollador web. Apasionado por la IA, el análisis de datos y el diseño de sistemas educativos.</p>
+                </div>
+                
+                <!-- Skills Stack -->
+                <div class="col-md-7">
+                    <h6 class="text-uppercase fw-bold text-primary mb-3 text-center text-md-start"><i class="fa-solid fa-layer-group me-2"></i>Tech Stack & Skills</h6>
+                    <div class="d-flex flex-wrap justify-content-center justify-content-md-start">
+                        <span class="skill-icon" title="SQL"><i class="fa-solid fa-database text-info"></i></span>
+                        <span class="skill-icon" title="Power BI"><i class="fa-solid fa-chart-bar text-warning"></i></span>
+                        <span class="skill-icon" title="Python"><i class="fa-brands fa-python text-primary"></i></span>
+                        <span class="skill-icon" title=".NET MAUI"><i class="fa-solid fa-cubes text-purple"></i></span>
+                        <span class="skill-icon" title="HTML5"><i class="fa-brands fa-html5 text-danger"></i></span>
+                        <span class="skill-icon" title="CSS3"><i class="fa-brands fa-css3-alt text-primary"></i></span>
+                        <span class="skill-icon" title="JavaScript"><i class="fa-brands fa-js text-warning"></i></span>
+                        <span class="skill-icon" title="React"><i class="fa-brands fa-react text-info"></i></span>
+                        <span class="skill-icon" title="PHP"><i class="fa-brands fa-php text-primary"></i></span>
+                        <span class="skill-icon" title="C#"><i class="fa-solid fa-code text-success"></i></span>
+                        <span class="skill-icon" title="Laravel"><i class="fa-brands fa-laravel text-danger"></i></span>
+                        <span class="skill-icon" title="Excel"><i class="fa-regular fa-file-excel text-success"></i></span>
+                        <span class="skill-icon" title="Android ADB"><i class="fa-brands fa-android text-success"></i></span>
+                        <span class="skill-icon" title="Grafos/Optimización"><i class="fa-solid fa-diagram-project text-light"></i></span>
+                        <span class="skill-icon" title="IA Ecosystem"><i class="fa-solid fa-brain text-info"></i> AI</span>
+                    </div>
+                </div>
+            </div>
+
+            <hr class="border-secondary">
+
+            <!-- Redes Sociales e Info -->
+            <div class="d-flex flex-column flex-md-row justify-content-between align-items-center py-2">
+                <div class="mb-3 mb-md-0">
+                    <span class="text-muted">Desarrollado con fines educativos por </span>
+                    <span class="text-white fw-bold">Ing. LORETO CARRERAS</span>
+                </div>
+                <div class="d-flex">
+                    <a href="#" class="social-link social-youtube"><i class="fa-brands fa-youtube"></i></a>
+                    <a href="#" class="social-link social-linkedin"><i class="fa-brands fa-linkedin"></i></a>
+                    <a href="#" class="social-link social-github"><i class="fa-brands fa-github"></i></a>
+                    <a href="#" class="social-link social-whatsapp"><i class="fa-brands fa-whatsapp"></i></a>
+                    <a href="#" class="social-link social-instagram"><i class="fa-brands fa-instagram"></i></a>
+                    <a href="#" class="social-link social-facebook"><i class="fa-brands fa-facebook"></i></a>
+                    <a href="#" class="social-link social-twitter"><i class="fa-brands fa-x-twitter"></i></a>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Modal de Perfil Completo (LORETO CARRERAS) -->
+    <div class="modal fade" id="profileModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content bg-dark text-white">
+                <div class="modal-header border-secondary">
+                    <h5 class="modal-title fw-bold"><i class="fa-solid fa-user-tie me-2 text-primary"></i>Perfil Profesional</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body text-center">
+                    <img src="FOTO_PORTADA_JUANCITO.png" alt="Juancito Peña" class="rounded-circle mb-3 border border-primary border-3" style="width: 130px; height: 130px; object-fit: cover;" onerror="this.src='https://via.placeholder.com/150'">
+                    <h4>Ing. LORETO CARRERAS</h4>
+                    <p class="text-primary fw-semibold">Docente Universitario & Consultor de Software</p>
+                    <p class="text-muted px-2">
+                        Especialista en desarrollo web escalable, análisis de datos y modelado algorítmico (grafos/optimización). Apasionado por la integración de ecosistemas de Inteligencia Artificial (Gemini, ChatGPT, Claude) en el sector educativo y productivo.
+                    </p>
+                    <div class="bg-secondary bg-opacity-25 p-3 rounded text-start my-3">
+                        <small class="text-primary d-block fw-bold mb-1">Contacto Directo:</small>
+                        <p class="m-0 text-white-50"><i class="fa-solid fa-envelope me-2"></i> info@juancitopena.edu</p>
+                        <p class="m-0 text-white-50"><i class="fa-solid fa-location-dot me-2"></i> Campus Universitario</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bootstrap Bundle with Popper -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+
+    <!-- App Logic JavaScript -->
+    <script>
+        let allProducts = [];
+        let cart = JSON.parse(localStorage.getItem('shopmaster_cart')) || [];
+        let currentSelectedProduct = null;
+
+        // Elementos del DOM
+        const productsGrid = document.getElementById('products-grid');
+        const loadingSpinner = document.getElementById('loading');
+        const cartItemsContainer = document.getElementById('cart-items');
+        const cartTotalText = document.getElementById('cart-total');
+        const cartCountBadge = document.getElementById('cart-count');
+        const checkoutBtn = document.getElementById('btn-checkout');
+
+        // Inicialización
+        document.addEventListener('DOMContentLoaded', () => {
+            fetchProducts();
+            renderCart();
+            setupEventListeners();
+        });
+
+        // Configurar Event Listeners
+        function setupEventListeners() {
+            // Evento para añadir desde el modal
+            document.getElementById('modal-add-btn').addEventListener('click', () => {
+                if (currentSelectedProduct) {
+                    const qty = parseInt(document.getElementById('modal-qty').value) || 1;
+                    addToCart(currentSelectedProduct, qty);
+                    bootstrap.Modal.getInstance(document.getElementById('productModal')).hide();
+                }
+            });
+
+            // Validación y lógica de la Pasarela de pago
+            document.getElementById('payment-form').addEventListener('submit', function(e) {
+                e.preventDefault();
+                if (!this.checkValidity()) {
+                    e.stopPropagation();
+                    this.classList.add('was-validated');
+                    showAlert('⚠️ Por favor rellene los campos correctamente.', 'warning');
+                    return;
+                }
+                
+                processPayment();
+            });
+        }
+
+        // Alertas de la interfaz
+        function showAlert(message, type = 'success') {
+            const container = document.getElementById('alert-container');
+            const alert = document.createElement('div');
+            alert.className = `alert alert-${type} alert-dismissible fade show shadow-sm`;
+            alert.innerHTML = `
+                <div>${message}</div>
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            `;
+            container.appendChild(alert);
+            setTimeout(() => alert.remove(), 3000);
+        }
+
+        // Obtener productos de la API
+        async function fetchProducts() {
+            try {
+                const response = await fetch('https://fakestoreapi.com/products');
+                allProducts = await response.json();
+                loadingSpinner.style.display = 'none';
+                renderProducts(allProducts);
+            } catch (error) {
+                console.error("Error cargando productos:", error);
+                loadingSpinner.innerHTML = `<p class="text-danger fw-bold">Error al conectar con el servidor de productos.</p>`;
+            }
+        }
+
+        // Renderizar Productos en la Grid
+        function renderProducts(products) {
+            productsGrid.innerHTML = '';
+            products.forEach(prod => {
+                const card = document.createElement('div');
+                card.className = 'col';
+                card.innerHTML = `
+                    <div class="card product-card position-relative shadow-sm border-0">
+                        <span class="badge badge-category rounded-pill">${prod.category}</span>
+                        <div class="card-img-container">
+                            <img src="${prod.image}" alt="${prod.title}">
+                        </div>
+                        <div class="card-body d-flex flex-column justify-content-between p-3 bg-white">
+                            <div>
+                                <h6 class="card-title fw-bold text-truncate" title="${prod.title}">${prod.title}</h6>
+                                <p class="card-text text-muted small text-truncate-3" style="display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;">${prod.description}</p>
+                            </div>
+                            <div class="mt-3">
+                                <h5 class="fw-bold text-primary mb-2">$${prod.price.toFixed(2)}</h5>
+                                <button class="btn btn-outline-primary btn-sm w-100 fw-bold" onclick="openProductModal(${prod.id})">
+                                    Ver más <i class="fa-solid fa-arrow-right ms-1"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                productsGrid.appendChild(card);
+            });
+        }
+
+        // Abrir Modal de Detalle
+        function openProductModal(id) {
+            const prod = allProducts.find(p => p.id === id);
+            if (!prod) return;
+            currentSelectedProduct = prod;
+
+            document.getElementById('modal-product-title').innerText = prod.title;
+            document.getElementById('modal-product-name').innerText = prod.title;
+            document.getElementById('modal-product-img').src = prod.image;
+            document.getElementById('modal-product-category').innerText = prod.category;
+            document.getElementById('modal-product-desc').innerText = prod.description;
+            document.getElementById('modal-product-price').innerText = `$${prod.price.toFixed(2)}`;
+            document.getElementById('modal-qty').value = 1;
+
+            const modal = new bootstrap.Modal(document.getElementById('productModal'));
+            modal.show();
+        }
+
+        // Agregar al carrito
+        function addToCart(product, qty) {
+            const existingIndex = cart.findIndex(item => item.product.id === product.id);
+            if (existingIndex > -1) {
+                cart[existingIndex].qty += qty;
+            } else {
+                cart.push({ product, qty });
+            }
+            saveAndRefreshCart();
+            showAlert(`✅ Añadido al carrito: ${product.title.substring(0, 20)}...`);
+        }
+
+        // Modificar cantidad en carrito
+        function updateCartQty(id, delta) {
+            const index = cart.findIndex(item => item.product.id === id);
+            if (index > -1) {
+                cart[index].qty += delta;
+                if (cart[index].qty <= 0) {
+                    cart.splice(index, 1);
+                }
+                saveAndRefreshCart();
+            }
+        }
+
+        // Eliminar del carrito
+        function removeFromCart(id) {
+            cart = cart.filter(item => item.product.id !== id);
+            saveAndRefreshCart();
+            showAlert('🗑️ Producto eliminado del carrito', 'info');
+        }
+
+        function saveAndRefreshCart() {
+            localStorage.setItem('shopmaster_cart', JSON.stringify(cart));
+            renderCart();
+        }
+
+        // Renderizar elementos del Carrito
+        function renderCart() {
+            cartItemsContainer.innerHTML = '';
+            let total = 0;
+            let totalItems = 0;
+
+            if (cart.length === 0) {
+                cartItemsContainer.innerHTML = `<p class="text-center text-muted my-4">El carrito está vacío. 🛒</p>`;
+                checkoutBtn.disabled = true;
+            } else {
+                checkoutBtn.disabled = false;
+                cart.forEach(item => {
+                    total += item.product.price * item.qty;
+                    totalItems += item.qty;
+
+                    const row = document.createElement('div');
+                    row.className = 'd-flex align-items-center mb-3 border-bottom pb-2';
+                    row.innerHTML = `
+                        <img src="${item.product.image}" alt="" style="width: 50px; height: 50px; object-fit: contain;" class="me-2 bg-white p-1 rounded">
+                        <div class="flex-grow-1">
+                            <h6 class="small fw-bold mb-0 text-truncate" style="max-width: 150px;">${item.product.title}</h6>
+                            <span class="small text-muted">$${item.product.price.toFixed(2)}</span>
+                        </div>
+                        <div class="d-flex align-items-center me-2">
+                            <button class="btn btn-sm btn-light p-1 px-2" onclick="updateCartQty(${item.product.id}, -1)"><i class="fa-solid fa-minus fs-xs"></i></button>
+                            <span class="mx-2 small fw-bold">${item.qty}</span>
+                            <button class="btn btn-sm btn-light p-1 px-2" onclick="updateCartQty(${item.product.id}, 1)"><i class="fa-solid fa-plus fs-xs"></i></button>
+                        </div>
+                        <button class="btn btn-sm btn-outline-danger p-1" onclick="removeFromCart(${item.product.id})">
+                            <i class="fa-solid fa-trash"></i>
+                        </button>
+                    `;
+                    cartItemsContainer.appendChild(row);
+                });
+            }
+
+            cartTotalText.innerText = `$${total.toFixed(2)}`;
+            cartCountBadge.innerText = totalItems;
+        }
+
+        // Procesar Pago y Lanzar Recibo
+        function processPayment() {
+            const clientName = document.getElementById('pay-name').value;
+            
+            // Cerrar Modales y Limpiar Carrito
+            bootstrap.Modal.getInstance(document.getElementById('checkoutModal')).hide();
+            bootstrap.Offcanvas.getInstance(document.getElementById('cartOffcanvas')).hide();
+            
+            showAlert('🎉 ¡Pago procesado con éxito! Generando su ticket...', 'success');
+            
+            // Generar PDF del Ticket formato térmico
+            generateThermalTicket(clientName);
+            
+            // Vaciar carrito
+            cart = [];
+            saveAndRefreshCart();
+            document.getElementById('payment-form').reset();
+            document.getElementById('payment-form').classList.remove('was-validated');
+        }
+
+        // Generar Ticket en PDF (Diseño Recibo Térmico 80mm)
+        function generateThermalTicket(clientName) {
+            const { jsPDF } = window.jspdf;
+            
+            // Configurar tamaño recibo de 80mm de ancho. Largo dinámico estimado según productos
+            const ticketWidth = 80; 
+            const ticketHeight = 110 + (cart.length * 12);
+            const doc = new jsPDF({
+                orientation: "portrait",
+                unit: "mm",
+                format: [ticketWidth, ticketHeight]
+            });
+
+            // Configurar fuente monoespaciada para estilo de impresión térmica
+            doc.setFont("courier", "normal");
+            doc.setFontSize(10);
+
+            let y = 10;
+            const lineSpacing = 5;
+
+            // Cabecera del Comercio
+            doc.setFont("courier", "bold");
+            doc.text("*** SHOPMASTER ***", ticketWidth / 2, y, { align: "center" });
+            y += lineSpacing;
+            doc.setFont("courier", "normal");
+            doc.text("Tu Tienda Online S.A.", ticketWidth / 2, y, { align: "center" });
+            y += lineSpacing;
+            doc.text("RNC: 1-23-45678-9", ticketWidth / 2, y, { align: "center" });
+            y += lineSpacing + 2;
+
+            // Metadatos de la venta
+            const now = new Date();
+            doc.text(`FECHA: ${now.toLocaleDateString()} ${now.toLocaleTimeString()}`, 5, y);
+            y += lineSpacing;
+            doc.text(`CLIENTE: ${clientName.toUpperCase().substring(0, 22)}`, 5, y);
+            y += lineSpacing + 2;
+
+            // Separador plano básico
+            doc.text("------------------------------------------", 5, y);
+            y += lineSpacing;
+            doc.setFont("courier", "bold");
+            doc.text("DESC.          CANT.    P.UNIT     TOTAL", 5, y);
+            y += lineSpacing;
+            doc.setFont("courier", "normal");
+            doc.text("------------------------------------------", 5, y);
+            y += lineSpacing + 1;
+
+            // Listado de Productos comprados
+            let totalCalculado = 0;
+            cart.forEach(item => {
+                const titleStr = item.product.title.substring(0, 12).padEnd(12, " ");
+                const qtyStr = item.qty.toString().padStart(4, " ");
+                const unitPriceStr = item.product.price.toFixed(2).padStart(9, " ");
+                const subTotalItem = item.product.price * item.qty;
+                const totalItemStr = subTotalItem.toFixed(2).padStart(10, " ");
+                
+                totalCalculado += subTotalItem;
+
+                doc.text(`${titleStr}   ${qtyStr}  ${unitPriceStr} ${totalItemStr}`, 5, y);
+                y += lineSpacing;
+            });
+
+            // Pie de totales
+            doc.text("------------------------------------------", 5, y);
+            y += lineSpacing + 1;
+            doc.setFont("courier", "bold");
+            doc.text(`TOTAL GENERAL:        $${totalCalculado.toFixed(2).padStart(10, " ")}`, 5, y);
+            y += lineSpacing + 4;
+
+            // Mensaje Final
+            doc.setFont("courier", "normal");
+            doc.text("*** Gracias por su compra ***", ticketWidth / 2, y, { align: "center" });
+            y += lineSpacing;
+            doc.text("No se aceptan devoluciones sin ticket", ticketWidth / 2, y, { align: "center" });
+
+            // Descargar el documento directamente
+            doc.save(`Ticket_ShopMaster_${Date.now()}.pdf`);
+        }
+    </script>
+</body>
+</html>
